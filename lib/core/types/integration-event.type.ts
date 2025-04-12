@@ -10,6 +10,7 @@ export type IntegrationEventType =
   | 'INTEGRATION_CANCELLED';
 
 export interface IntegrationEvent {
+  integrationName: string;
   integrationType: IntegrationType;
   eventType: IntegrationEventType;
   externalId?: string;
@@ -18,3 +19,16 @@ export interface IntegrationEvent {
   metadata?: Record<string, any>;
   createdAt: Date;
 }
+
+export const IntegrationEventDescriptions: Record<
+  IntegrationEventType,
+  string
+> = {
+  INTEGRATION_INITIATED: 'Integração iniciada',
+  INTEGRATION_REQUESTED: 'Solicitação enviada para o sistema integrado',
+  INTEGRATION_PROCESSING: 'Processamento da integração em andamento',
+  INTEGRATION_COMPLETED: 'Integração concluída com sucesso',
+  INTEGRATION_FAILED: 'Falha na integração',
+  INTEGRATION_RETRIED: 'Tentativa de nova integração',
+  INTEGRATION_CANCELLED: 'Integração cancelada',
+};
