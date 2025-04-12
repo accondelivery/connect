@@ -20,4 +20,8 @@ export class IntegrationRegistryService {
 
     this.integrations.push({ meta, integrationClass });
   }
+
+  static getIntegrations() {
+    return this.integrations;
+  }
 }
