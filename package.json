@@ -20,11 +20,12 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
-"@nestjs/event-emitter": "^3.0.1",
+    "@nestjs/event-emitter": "^3.0.1",
     "@nestjs/platform-express": "^11.0.1",
-"axios": "^1.8.4",
+    "axios": "^1.8.4",
     "json-schema-to-ts": "^3.1.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
@@ -57,6 +58,10 @@
     "typescript-eslint": "^8.20.0"
   },
   "jest": {
+    "moduleNameMapper": {
+      "^@lib/core$": "<rootDir>/core/index.ts",
+      "^@lib/core/(.*)$": "<rootDir>/core/$1"
+    },
     "moduleFileExtensions": [
       "js",
       "json",
