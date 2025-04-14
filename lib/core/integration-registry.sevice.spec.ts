@@ -4,6 +4,7 @@ import { IntegrationMeta } from './interfaces/integration-meta.interface';
 describe('IntegrationRegistryService', () => {
   const mockMeta1: IntegrationMeta = {
     id: 'test-integration-1',
+    type: 'OrderOutput',
     title: 'Test Integration 1',
     logoUrl: '',
     websiteUrl: '',
@@ -13,6 +14,7 @@ describe('IntegrationRegistryService', () => {
 
   const mockMeta2: IntegrationMeta = {
     id: 'test-integration-2',
+    type: 'OrderOutput',
     title: 'Test Integration 2',
     logoUrl: '',
     websiteUrl: '',
