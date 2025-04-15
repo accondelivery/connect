@@ -1,13 +1,19 @@
-import { Injectable, Logger, Type } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { IntegrationRegistryService } from './integration-registry.service';
 import { IntegrationMeta, Order } from '.';
+import { loadIntegrationFiles } from './integration-loader';
+import * as path from 'node:path';
 
 @Injectable()
-export class ConnectService {
+export class ConnectService implements OnModuleInit {
   private readonly logger = new Logger(ConnectService.name);
 
   constructor(private moduleRef: ModuleRef) {}
+
+  async onModuleInit() {
+    await loadIntegrationFiles(path.join(__dirname, '..')); // ../lib
+  }
 
   findAll() {
     return IntegrationRegistryService.getIntegrations();
