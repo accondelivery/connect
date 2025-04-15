@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Connect any application to Accon",
   "author": "Lincon Dias <lincon@accon.com.br>",
+  "homepage": "https://github.com/accondelivery/connect#readme",
   "license": "BUSL-1.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -80,5 +81,6 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
-  }
+  },
+  "repository": "github:accondelivery/connect"
 }
