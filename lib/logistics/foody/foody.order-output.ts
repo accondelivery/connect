@@ -18,6 +18,7 @@ import { AxiosResponse, isAxiosError } from 'axios';
   id: 'foody-delivery',
   type: 'OrderOutput',
   title: 'Foody Delivery',
+  category: 'Logistics',
   description:
     'Sistema de logística urbana pioneiro do mercado, simplificando operações desde 2015 para estabelecimentos de delivery e empresas de entregas',
   logoUrl:
