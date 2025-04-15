@@ -10,7 +10,7 @@ import {
 import { FOODY_CONFIG_SCHEMA, FoodyConfig } from './foody.config';
 import { CreateFoodyOrderDto } from './dto/create-foody-order.dto';
 import { HttpService } from '@nestjs/axios';
-import { catchError, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { CreateFoodyOrderResponseDto } from './dto/create-foody-order-response.dto';
 import { AxiosResponse, isAxiosError } from 'axios';
 
