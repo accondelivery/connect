@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { IntegrationRegistryService } from './integration-registry.service';
-import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConnectService } from './connect.service';
 import { FoodyModule } from '../foody/foody.module';
+import { EventsModule } from './events';
 
 @Module({
-  imports: [EventEmitterModule, FoodyModule],
+  imports: [EventsModule, FoodyModule],
   providers: [ConnectService, IntegrationRegistryService],
   exports: [ConnectService],
 })
