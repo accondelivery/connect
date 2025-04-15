@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import {
   IntegrationEvent,
   IntegrationEventDescriptions,
-} from './types/integration-event.type';
+} from '../types/integration-event.type';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { IntegrationEventDispatcher } from './types/integration-event-dispatcher.type';
+import { IntegrationEventDispatcher } from '../types/integration-event-dispatcher.type';
 
 @Injectable()
 export class EventsService {
