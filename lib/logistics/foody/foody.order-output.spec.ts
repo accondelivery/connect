@@ -76,12 +76,15 @@ describe('FoodyOutputOrder', () => {
 
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_INITIATED',
+      orderId: order.id,
     });
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_PROCESSING',
+      orderId: order.id,
     });
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_COMPLETED',
+      orderId: order.id,
       metadata: { data: response.data },
     });
   });
@@ -98,6 +101,7 @@ describe('FoodyOutputOrder', () => {
     expect(dispatchMock).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: 'INTEGRATION_FAILED',
+        orderId: order.id,
         metadata: {
           error: expect.any(InvalidOrderException),
         },
@@ -142,13 +146,16 @@ describe('FoodyOutputOrder', () => {
 
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_INITIATED',
+      orderId: order.id,
     });
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_PROCESSING',
+      orderId: order.id,
     });
     expect(dispatchMock).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: 'INTEGRATION_FAILED',
+        orderId: order.id,
         metadata: {
           error: errorResponse.data,
         },
@@ -186,12 +193,15 @@ describe('FoodyOutputOrder', () => {
 
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_INITIATED',
+      orderId: order.id,
     });
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_PROCESSING',
+      orderId: order.id,
     });
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_COMPLETED',
+      orderId: order.id,
       metadata: { data: response.data },
     });
   });

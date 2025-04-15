@@ -24,7 +24,7 @@ export class EventsService {
     return (
       event: Pick<
         IntegrationEvent,
-        'eventType' | 'externalId' | 'notes' | 'metadata'
+        'orderId' | 'eventType' | 'externalId' | 'notes' | 'metadata'
       >,
     ) => {
       this.dispatch({

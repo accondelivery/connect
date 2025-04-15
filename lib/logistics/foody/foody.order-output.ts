@@ -50,11 +50,17 @@ export class FoodyOrderOutput implements OrderOutputIntegration<FoodyConfig> {
     }
 
     try {
-      this.dispatchEvent({ eventType: 'INTEGRATION_INITIATED' });
+      this.dispatchEvent({
+        eventType: 'INTEGRATION_INITIATED',
+        orderId: order.id,
+      });
       this.logger.debug(
         `onOrderCreated: Transformando o pedido com id: ${order.id}`,
       );
-      this.dispatchEvent({ eventType: 'INTEGRATION_PROCESSING' });
+      this.dispatchEvent({
+        eventType: 'INTEGRATION_PROCESSING',
+        orderId: order.id,
+      });
       const body = this.transformOrder(order);
       this.logger.debug('onOrderCreated: Pedido transformado', body);
 
@@ -74,6 +80,7 @@ export class FoodyOrderOutput implements OrderOutputIntegration<FoodyConfig> {
       this.logger.debug('onOrderCreated: Resposta do Foody', data);
       this.dispatchEvent({
         eventType: 'INTEGRATION_COMPLETED',
+        orderId: order.id,
         metadata: { data },
       });
     } catch (error) {
@@ -84,11 +91,13 @@ export class FoodyOrderOutput implements OrderOutputIntegration<FoodyConfig> {
         );
         this.dispatchEvent({
           eventType: 'INTEGRATION_FAILED',
+          orderId: order.id,
           metadata: { error: error.response?.data },
         });
       } else {
         this.dispatchEvent({
           eventType: 'INTEGRATION_FAILED',
+          orderId: order.id,
           metadata: { error },
         });
         this.logger.error(

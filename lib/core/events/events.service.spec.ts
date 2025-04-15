@@ -17,8 +17,9 @@ describe('EventsService', () => {
 
     const event: Pick<
       IntegrationEvent,
-      'eventType' | 'externalId' | 'notes' | 'metadata'
+      'orderId' | 'eventType' | 'externalId' | 'notes' | 'metadata'
     > = {
+      orderId: '123',
       eventType: 'INTEGRATION_COMPLETED',
       externalId: 'abc123',
       notes: 'success',
