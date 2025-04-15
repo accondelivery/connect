@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   EventsService,
   RegistryIntegration,
-  OutputOrderIntegration,
+  OrderOutputIntegration,
   Order,
   InvalidOrderException,
   IntegrationEventDispatcher,
@@ -27,8 +27,8 @@ import { AxiosResponse, isAxiosError } from 'axios';
   configSchema: FOODY_CONFIG_SCHEMA,
 })
 @Injectable()
-export class FoodyOutputOrder implements OutputOrderIntegration<FoodyConfig> {
-  private readonly logger = new Logger(FoodyOutputOrder.name);
+export class FoodyOrderOutput implements OrderOutputIntegration<FoodyConfig> {
+  private readonly logger = new Logger(FoodyOrderOutput.name);
   private readonly BASE_URL = 'https://app.foodydelivery.com/rest/1.2';
   private readonly dispatchEvent: IntegrationEventDispatcher;
 

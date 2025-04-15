@@ -1,12 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { EventsService, Order, InvalidOrderException } from '@lib/core';
 import { AxiosResponse } from 'axios';
-import { FoodyOutputOrder } from './foody.order-output';
+import { FoodyOrderOutput } from './foody.order-output';
 import { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 
 describe('FoodyOutputOrder', () => {
-  let service: FoodyOutputOrder;
+  let service: FoodyOrderOutput;
   let httpService: HttpService;
   let eventsService: EventsService;
   const dispatchMock = jest.fn();
@@ -14,7 +14,7 @@ describe('FoodyOutputOrder', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        FoodyOutputOrder,
+        FoodyOrderOutput,
         {
           provide: HttpService,
           useValue: { post: jest.fn() },
@@ -28,7 +28,7 @@ describe('FoodyOutputOrder', () => {
       ],
     }).compile();
 
-    service = module.get(FoodyOutputOrder);
+    service = module.get(FoodyOrderOutput);
     httpService = module.get(HttpService);
     eventsService = module.get(EventsService);
 

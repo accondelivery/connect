@@ -46,7 +46,7 @@ await this.connectService.onOrderCreated({ ifood: { token: 'abc' } }, { order: p
 
 ```ts
 @RegistryIntegration({ id: 'loggi' })
-export class LoggiOutputOrder implements OutputOrderIntegration {
+export class LoggiOrderOutput implements OrderOutputIntegration {
   constructor(private readonly http: HttpService) {}
 
   async onOrderCreated(order: Order, config: any): Promise<void> {
