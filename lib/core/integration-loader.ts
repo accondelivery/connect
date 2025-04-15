@@ -4,7 +4,7 @@ export async function loadIntegrationFiles(
   basePath: string,
   requireFn: (file: string) => unknown = require,
 ) {
-  const files = await fg(['**/*.output-order.{js,ts}'], {
+  const files = await fg(['**/*.order-output.{js,ts}'], {
     cwd: basePath,
     absolute: true,
   });
