@@ -19,6 +19,12 @@ export class ConnectService implements OnModuleInit {
     return IntegrationRegistryService.getIntegrations();
   }
 
+  findOne(integrationId: string) {
+    return IntegrationRegistryService.getIntegrations().find(
+      ({ meta }) => meta.id === integrationId,
+    );
+  }
+
   async onOrderCreated(
     integrations: Record<string, unknown>,
     payload: { order: Order },

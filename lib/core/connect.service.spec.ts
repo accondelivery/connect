@@ -45,6 +45,20 @@ describe('ConnectService', () => {
     jest.restoreAllMocks();
   });
 
+  describe('findOne', () => {
+    it('should return the integration with matching id', () => {
+      const mockMeta = { id: 'test-id' } as IntegrationMeta;
+      IntegrationRegistryService.register(mockMeta, class {});
+      const result = service.findOne('test-id');
+      expect(result?.meta.id).toBe('test-id');
+    });
+
+    it('should return undefined if no matching integration is found', () => {
+      const result = service.findOne('nonexistent');
+      expect(result).toBeUndefined();
+    });
+  });
+
   it('should call loadIntegrationFiles on init', async () => {
     const { loadIntegrationFiles } = await import('./integration-loader');
     await service.onModuleInit();
@@ -69,7 +83,7 @@ describe('ConnectService', () => {
 
     await service.onOrderCreated({ test: {} }, { order: mockOrder });
 
-    expect(moduleRef.create).toHaveBeenCalled()
+    expect(moduleRef.create).toHaveBeenCalled();
     expect(mockLogger.warn).toHaveBeenCalledWith(
       'Integration test does not implement onOrderCreated',
     );
