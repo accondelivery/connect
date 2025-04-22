@@ -180,7 +180,7 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
       return {
         code,
         amount: method.value,
-        change_for: method.changeFor,
+        change_for: method.changeFor || 0,
         type: method.type === 'PREPAID' ? 'ONLINE' : 'OFFLINE',
         complement: method.method === 'PIX' ? 'pix' : undefined,
       };
