@@ -64,7 +64,7 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
 
   async onOrderCreated(order: Order, config: SaiposConfig): Promise<void> {
     this.logger.verbose('onOrderCreated: iniciando integração');
-    if (this.ALLOWED_ORDER_TYPES.includes(order.type)) {
+    if (!this.ALLOWED_ORDER_TYPES.includes(order.type)) {
       this.logger.verbose(
         `Ignorando tipo de pedido não permitido: ${order.type} [${this.ALLOWED_ORDER_TYPES.join(',')}]`,
       );
