@@ -110,9 +110,12 @@ describe('ConnectService', () => {
         { exec: { token: 'abc' } },
         { order: mockOrder },
       );
-      expect(handler.onOrderCreated).toHaveBeenCalledWith(mockOrder, {
-        token: 'abc',
-      });
+      expect(handler.onOrderCreated).toHaveBeenCalledWith(
+        { order: mockOrder },
+        {
+          token: 'abc',
+        },
+      );
       expect(mockLogger.log).toHaveBeenCalledWith(
         "onOrderCreated: integration with ID 'exec' successfully processed order 'order123'.",
       );

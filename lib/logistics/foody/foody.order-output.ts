@@ -6,6 +6,7 @@ import {
   Order,
   InvalidOrderException,
   IntegrationEventDispatcher,
+  IntegrationPayload,
 } from '@lib/core';
 import { FOODY_CONFIG_SCHEMA, FoodyConfig } from './foody.config';
 import { CreateFoodyOrderDto } from './dto/create-foody-order.dto';
@@ -42,7 +43,11 @@ export class FoodyOrderOutput implements OrderOutputIntegration<FoodyConfig> {
     );
   }
 
-  async onOrderCreated(order: Order, config: FoodyConfig): Promise<void> {
+  async onOrderCreated(
+    payload: IntegrationPayload,
+    config: FoodyConfig,
+  ): Promise<void> {
+    const { order } = payload;
     this.logger.verbose('onOrderCreated: iniciando integração');
     if (order.type != 'DELIVERY') {
       this.logger.verbose('Ignorando pedido com tipo diferente de DELIVERY');

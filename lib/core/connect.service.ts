@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit, Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { IntegrationRegistryService } from './integration-registry.service';
-import { IntegrationMeta, Order } from '.';
+import { IntegrationMeta, IntegrationPayload } from '.';
 import { loadIntegrationFiles } from './integration-loader';
 import * as path from 'node:path';
 
@@ -27,7 +27,7 @@ export class ConnectService implements OnModuleInit {
 
   async onOrderCreated(
     integrations: Record<string, unknown>,
-    payload: { order: Order },
+    payload: IntegrationPayload,
   ) {
     const allIntegrations = this.findAll();
 
@@ -56,7 +56,7 @@ export class ConnectService implements OnModuleInit {
           continue;
         }
 
-        await instance.onOrderCreated(payload.order, config);
+        await instance.onOrderCreated(payload, config);
         this.logger.log(
           `onOrderCreated: integration with ID '${integrationId}' successfully processed order '${payload.order.id}'.`,
         );
