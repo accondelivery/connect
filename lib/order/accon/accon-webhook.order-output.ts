@@ -19,6 +19,8 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { isAxiosError } from 'axios';
 
+type HookType = 'onOrderCreated' | 'onOrderUpdated' | 'onOrderCanceled';
+
 @RegistryIntegration({
   id: 'accon-webhook',
   type: 'OrderOutput',
@@ -26,7 +28,8 @@ import { isAxiosError } from 'axios';
   category: 'POS',
   description: 'Integre pedidos via Webhook utilizando o formato da Accon 1.0',
   logoUrl: 'https://accon.com.br/',
-  websiteUrl: 'https://accon.com.br/',
+  websiteUrl:
+    'https://accon.com.br/wp-content/uploads/2024/08/Accon-Logo-Roxa.webp',
   configSchema: ACCON_WEBHOOK_CONFIG_SCHEMA,
 })
 @Injectable()
@@ -45,28 +48,54 @@ export class AcconWebhookOrderOutput
     );
   }
 
-  async onOrderCreated(
+  onOrderCreated(
     payload: IntegrationPayload,
     config: AcconWebhookConfig,
   ): Promise<void> {
+    return this.callHook('onOrderCreated', payload, config);
+  }
+
+  onOrderUpdated?(
+    payload: IntegrationPayload,
+    config: AcconWebhookConfig,
+  ): Promise<void> {
+    return this.callHook('onOrderUpdated', payload, config);
+  }
+
+  onOrderCanceled?(
+    payload: IntegrationPayload,
+    config: AcconWebhookConfig,
+  ): Promise<void> {
+    return this.callHook('onOrderCanceled', payload, config);
+  }
+
+  async callHook(
+    type: HookType,
+    payload: IntegrationPayload,
+    config: AcconWebhookConfig,
+  ) {
+    const url = config[type];
+    if (typeof url !== 'string') {
+      this.logger.warn(`${type}: Configuração de URL ausente`);
+      return;
+    }
+
     const { order } = payload;
     this.dispatchEvent({
       eventType: 'INTEGRATION_INITIATED',
       orderId: order.id,
     });
-    this.logger.debug(
-      `onOrderCreated: Transformando o pedido com id: ${order.id}`,
-    );
+    this.logger.debug(`${type}: Transformando o pedido com id: ${order.id}`);
     this.dispatchEvent({
       eventType: 'INTEGRATION_PROCESSING',
       orderId: order.id,
     });
     const body = this.transformOrder(order, payload.merchant);
-    this.logger.debug('onOrderCreated: Pedido transformado', body);
+    this.logger.debug(`${type}: Pedido transformado`, body);
 
     try {
       const { status, data } = await firstValueFrom(
-        this.httpService.post(config.onCreatedURL, body),
+        this.httpService.post(url, body, { timeout: 5000 }),
       );
       this.dispatchEvent({
         eventType: 'INTEGRATION_COMPLETED',
@@ -75,10 +104,8 @@ export class AcconWebhookOrderOutput
       });
     } catch (error) {
       if (isAxiosError(error)) {
-        this.logger.error(
-          'onOrderCreated: falha ao realizar requisição',
-          JSON.stringify(error.response?.data),
-        );
+        const errorData = error.response?.data ?? error.message;
+        this.logger.error(`${type}: falha ao enviar para ${url}`, errorData);
         this.dispatchEvent({
           eventType: 'INTEGRATION_FAILED',
           orderId: order.id,
@@ -90,23 +117,9 @@ export class AcconWebhookOrderOutput
           orderId: order.id,
           metadata: { error },
         });
-        this.logger.error(`onOrderCreated: ${error.message}`, error);
+        this.logger.error(`${type}: ${error.message}`, error);
       }
     }
-  }
-
-  async onOrderUpdated?(
-    payload: IntegrationPayload,
-    config: AcconWebhookConfig,
-  ): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
-
-  async onOrderCanceled?(
-    payload: IntegrationPayload,
-    config: AcconWebhookConfig,
-  ): Promise<void> {
-    throw new Error('Method not implemented.');
   }
 
   transformOrder(order: Order, merchant?: Merchant): WebhookBodyDto {
@@ -130,7 +143,7 @@ export class AcconWebhookOrderOutput
     const { delivery } = order;
 
     const changeFor = order.payments.methods?.reduce((acc, method) => {
-      return acc + method.changeFor;
+      return acc + (method.changeFor ?? 0);
     }, 0);
 
     return {
@@ -161,7 +174,7 @@ export class AcconWebhookOrderOutput
           socialName: merchant.corporateName,
           storePhone: merchant.commercialNumber,
         },
-        deliveryTime: '',
+        deliveryTime: '', // FIXME: extract from merchant
         toGoTime: '',
       },
       deliveryTax: deliveryFee?.price?.value || 0,
@@ -211,43 +224,37 @@ export class AcconWebhookOrderOutput
     const { type, method, brand, transaction } = order.payments.methods[0];
     const online = type === 'PREPAID';
 
+    const METHOD_NAMES = new Map([
+      ['PIX', 'Pix'],
+      ['CASH', 'Dinheiro'],
+      ['CREDIT', 'Crédito'],
+      ['DEBIT', 'Débito'],
+      ['MEAL_VOUCHER', 'Voucher'],
+      ['FOOD_VOUCHER', 'Carteira Digital'],
+      ['DIGITAL_WALLET', 'Carteira Digital'],
+      ['CREDIT_DEBIT', 'Cartão de Crédito/Débito'],
+      ['COUPON', 'Cupom'],
+      ['REDEEM', 'Outros'],
+      ['PREPAID_REDEEM', 'Outros'],
+      ['OTHER', 'Outros'],
+    ]);
+
+    const CARD_METHODS: Array<typeof method> = [
+      'CREDIT',
+      'CREDIT_DEBIT',
+      'DEBIT',
+    ];
+
     return {
       cod: '',
       online,
       pix: online && method === 'PIX',
       tid: transaction?.authorizationCode,
       authorizationCode: transaction?.authorizationCode,
-      name: (() => {
-        const CARD_METHODS: Array<typeof method> = [
-          'CREDIT',
-          'CREDIT_DEBIT',
-          'DEBIT',
-        ];
-        if (CARD_METHODS.includes(method) && brand) return brand;
-        switch (method) {
-          case 'PIX':
-            return 'Pix';
-          case 'CASH':
-            return 'Dinheiro';
-          case 'CREDIT':
-            return 'Crédito';
-          case 'DEBIT':
-            return 'Débito';
-          case 'MEAL_VOUCHER':
-            return 'Voucher';
-          case 'FOOD_VOUCHER':
-          case 'DIGITAL_WALLET':
-            return 'Carteira Digital';
-          case 'CREDIT_DEBIT':
-            return 'Cartão de Crédito/Débito';
-          case 'COUPON':
-            return 'Cupom';
-          case 'REDEEM':
-          case 'PREPAID_REDEEM':
-          case 'OTHER':
-            return 'Outros';
-        }
-      })(),
+      name:
+        CARD_METHODS.includes(method) && brand
+          ? brand
+          : (METHOD_NAMES.get(method) ?? 'Outros'),
     };
   }
 }
