@@ -20,4 +20,6 @@ export class Merchant {
   name: string;
   document: string;
   corporateName: string;
+  contactEmails: string[];
+  commercialNumber: string;
 }
