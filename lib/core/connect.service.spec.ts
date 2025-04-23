@@ -65,97 +65,170 @@ describe('ConnectService', () => {
     expect(loadIntegrationFiles).toHaveBeenCalled();
   });
 
-  it('should skip unknown integration', async () => {
-    await service.onOrderCreated({ unknown: {} }, { order: mockOrder });
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      'Integration unknown not found',
-    );
-  });
-
-  it('should skip integration without onOrderCreated method', async () => {
-    class NoopIntegration {}
-    IntegrationRegistryService.register(
-      { id: 'test' } as unknown as IntegrationMeta,
-      NoopIntegration,
-    );
-
-    jest.spyOn(moduleRef, 'create').mockResolvedValue(new NoopIntegration());
-
-    await service.onOrderCreated({ test: {} }, { order: mockOrder });
-
-    expect(moduleRef.create).toHaveBeenCalled();
-    expect(mockLogger.warn).toHaveBeenCalledWith(
-      'Integration test does not implement onOrderCreated',
-    );
-  });
-
-  it('should execute integration successfully', async () => {
-    const handler = {
-      onOrderCreated: jest.fn(),
-    };
-
-    class Integration {
-      onOrderCreated(order: Order, token: any) {
-        return Promise.resolve();
-      }
-    }
-    IntegrationRegistryService.register(
-      { id: 'exec' } as unknown as IntegrationMeta,
-      Integration,
-    );
-    jest.spyOn(moduleRef, 'create').mockResolvedValue(handler);
-
-    await service.onOrderCreated(
-      { exec: { token: 'abc' } },
-      { order: mockOrder },
-    );
-    expect(handler.onOrderCreated).toHaveBeenCalledWith(mockOrder, {
-      token: 'abc',
+  describe('onOrderCreated', () => {
+    it('should skip unknown integration', async () => {
+      await service.onOrderCreated({ unknown: {} }, { order: mockOrder });
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "onOrderCreated: integration with ID 'unknown' was not found.",
+      );
     });
-    expect(mockLogger.log).toHaveBeenCalledWith(
-      'Integration exec processed order order123',
-    );
+
+    it('should skip integration without onOrderCreated method', async () => {
+      class NoopIntegration {}
+      IntegrationRegistryService.register(
+        { id: 'test' } as unknown as IntegrationMeta,
+        NoopIntegration,
+      );
+
+      jest.spyOn(moduleRef, 'create').mockResolvedValue(new NoopIntegration());
+
+      await service.onOrderCreated({ test: {} }, { order: mockOrder });
+
+      expect(moduleRef.create).toHaveBeenCalled();
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "onOrderCreated: integration with ID 'test' does not implement 'onOrderCreated'.",
+      );
+    });
+
+    it('should execute integration successfully', async () => {
+      const handler = {
+        onOrderCreated: jest.fn(),
+      };
+
+      class Integration {
+        onOrderCreated(order: Order, token: any) {
+          return Promise.resolve();
+        }
+      }
+      IntegrationRegistryService.register(
+        { id: 'exec' } as unknown as IntegrationMeta,
+        Integration,
+      );
+      jest.spyOn(moduleRef, 'create').mockResolvedValue(handler);
+
+      await service.onOrderCreated(
+        { exec: { token: 'abc' } },
+        { order: mockOrder },
+      );
+      expect(handler.onOrderCreated).toHaveBeenCalledWith(mockOrder, {
+        token: 'abc',
+      });
+      expect(mockLogger.log).toHaveBeenCalledWith(
+        "onOrderCreated: integration with ID 'exec' successfully processed order 'order123'.",
+      );
+    });
+
+    it('should catch and log error thrown by integration', async () => {
+      class BadIntegration {
+        onOrderCreated() {
+          throw new Error('boom');
+        }
+      }
+
+      IntegrationRegistryService.register(
+        { id: 'bad' } as unknown as IntegrationMeta,
+        BadIntegration,
+      );
+      jest.spyOn(moduleRef, 'create').mockResolvedValue(new BadIntegration());
+
+      await service.onOrderCreated({ bad: {} }, { order: mockOrder });
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "onOrderCreated: an error occurred while executing integration 'bad' for order 'order123'.",
+        expect.any(String),
+      );
+    });
+
+    it('should handle error when integration fails', async () => {
+      class FailingIntegration {
+        onOrderCreated() {
+          return Promise.reject(new Error('integration error'));
+        }
+      }
+
+      IntegrationRegistryService.register(
+        { id: 'failing' } as unknown as IntegrationMeta,
+        FailingIntegration,
+      );
+      jest
+        .spyOn(moduleRef, 'create')
+        .mockResolvedValue(new FailingIntegration());
+
+      await service.onOrderCreated({ failing: {} }, { order: mockOrder });
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "onOrderCreated: an error occurred while executing integration 'failing' for order 'order123'.",
+        expect.any(String),
+      );
+    });
   });
 
-  it('should catch and log error thrown by integration', async () => {
-    class BadIntegration {
-      onOrderCreated() {
-        throw new Error('boom');
+  describe('onWebhookData', () => {
+    it('should log error if integration is not found', async () => {
+      await service.onWebhookData('not-found', {});
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "onWebhookData: integration with ID 'not-found' was not found.",
+      );
+    });
+
+    it('should log error if integration does not implement onWebhookData', async () => {
+      class NoWebhookIntegration {}
+      IntegrationRegistryService.register(
+        { id: 'no-webhook' } as unknown as IntegrationMeta,
+        NoWebhookIntegration,
+      );
+      jest
+        .spyOn(moduleRef, 'create')
+        .mockResolvedValue(new NoWebhookIntegration());
+
+      await service.onWebhookData('no-webhook', {});
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        "onWebhookData: integration with ID 'no-webhook' does not implement 'onWebhookData'.",
+      );
+    });
+
+    it('should execute integration onWebhookData successfully', async () => {
+      const handler = {
+        onWebhookData: jest.fn(),
+      };
+      class WebhookIntegration {
+        onWebhookData() {
+          return Promise.resolve();
+        }
       }
-    }
 
-    IntegrationRegistryService.register(
-      { id: 'bad' } as unknown as IntegrationMeta,
-      BadIntegration,
-    );
-    jest.spyOn(moduleRef, 'create').mockResolvedValue(new BadIntegration());
+      IntegrationRegistryService.register(
+        { id: 'webhook' } as unknown as IntegrationMeta,
+        WebhookIntegration,
+      );
+      jest.spyOn(moduleRef, 'create').mockResolvedValue(handler);
 
-    await service.onOrderCreated({ bad: {} }, { order: mockOrder });
+      await service.onWebhookData('webhook', { data: true }, { param: 'abc' });
+      expect(handler.onWebhookData).toHaveBeenCalledWith(
+        { data: true },
+        { param: 'abc' },
+      );
+    });
 
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Failed to run integration bad for order order123',
-      expect.any(String),
-    );
-  });
-
-  it('should handle error when integration fails', async () => {
-    class FailingIntegration {
-      onOrderCreated() {
-        return Promise.reject(new Error('integration error'));
+    it('should log error if onWebhookData throws', async () => {
+      class FailingWebhookIntegration {
+        onWebhookData() {
+          throw new Error('boom');
+        }
       }
-    }
+      IntegrationRegistryService.register(
+        { id: 'fail' } as unknown as IntegrationMeta,
+        FailingWebhookIntegration,
+      );
+      jest
+        .spyOn(moduleRef, 'create')
+        .mockResolvedValue(new FailingWebhookIntegration());
 
-    IntegrationRegistryService.register(
-      { id: 'failing' } as unknown as IntegrationMeta,
-      FailingIntegration,
-    );
-    jest.spyOn(moduleRef, 'create').mockResolvedValue(new FailingIntegration());
-
-    await service.onOrderCreated({ failing: {} }, { order: mockOrder });
-
-    expect(mockLogger.error).toHaveBeenCalledWith(
-      'Failed to run integration failing for order order123',
-      expect.any(String),
-    );
+      await service.onWebhookData('fail', {});
+      expect(mockLogger.error).toHaveBeenCalledWith(
+        'onWebhookData: boom',
+        expect.any(String),
+      );
+    });
   });
 });

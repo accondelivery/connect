@@ -37,7 +37,9 @@ export class ConnectService implements OnModuleInit {
       );
 
       if (!integrationEntry) {
-        this.logger.warn(`Integration ${integrationId} not found`);
+        this.logger.error(
+          `onOrderCreated: integration with ID '${integrationId}' was not found.`,
+        );
         continue;
       }
 
@@ -48,22 +50,48 @@ export class ConnectService implements OnModuleInit {
           integrationClass as Type<any>,
         );
         if (typeof instance.onOrderCreated !== 'function') {
-          this.logger.warn(
-            `Integration ${integrationId} does not implement onOrderCreated`,
+          this.logger.error(
+            `onOrderCreated: integration with ID '${integrationId}' does not implement 'onOrderCreated'.`,
           );
           continue;
         }
 
         await instance.onOrderCreated(payload.order, config);
         this.logger.log(
-          `Integration ${integrationId} processed order ${payload.order.id}`,
+          `onOrderCreated: integration with ID '${integrationId}' successfully processed order '${payload.order.id}'.`,
         );
       } catch (err) {
         this.logger.error(
-          `Failed to run integration ${integrationId} for order ${payload.order.id}`,
+          `onOrderCreated: an error occurred while executing integration '${integrationId}' for order '${payload.order.id}'.`,
           err.stack,
         );
       }
+    }
+  }
+
+  async onWebhookData(integrationId: string, body: any, queryParams?: any) {
+    const integration = this.findOne(integrationId);
+    if (!integration) {
+      this.logger.error(
+        `onWebhookData: integration with ID '${integrationId}' was not found.`,
+      );
+      return;
+    }
+
+    const { integrationClass } = integration;
+
+    try {
+      const instance = await this.moduleRef.create(
+        integrationClass as Type<any>,
+      );
+      if (typeof instance.onWebhookData !== 'function') {
+        this.logger.error(
+          `onWebhookData: integration with ID '${integrationId}' does not implement 'onWebhookData'.`,
+        );
+      }
+      await instance.onWebhookData(body, queryParams);
+    } catch (err) {
+      this.logger.error(`onWebhookData: ${err.message}`, err.stack);
     }
   }
 }
