@@ -5,14 +5,19 @@ import {
   RegistryIntegration,
   IntegrationPayload,
   Merchant,
+  EventsService,
+  IntegrationEventDispatcher,
 } from '@lib/core';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   ACCON_WEBHOOK_CONFIG_SCHEMA,
   AcconWebhookConfig,
 } from './accon-webhook.config';
 import { PaymentDto, WebhookBodyDto } from './dto/accon-webhook';
 import { InvalidPayloadException } from '@lib/core/exceptions/invalid-payload.exception';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import { isAxiosError } from 'axios';
 
 @RegistryIntegration({
   id: 'accon-webhook',
@@ -25,13 +30,70 @@ import { InvalidPayloadException } from '@lib/core/exceptions/invalid-payload.ex
   configSchema: ACCON_WEBHOOK_CONFIG_SCHEMA,
 })
 @Injectable()
-export class AcconWebhook
+export class AcconWebhookOrderOutput
   implements OrderOutputIntegration<AcconWebhookConfig>
 {
+  private readonly dispatchEvent: IntegrationEventDispatcher;
+  private readonly logger = new Logger(AcconWebhookOrderOutput.name);
+  constructor(
+    private readonly httpService: HttpService,
+    readonly eventsService: EventsService,
+  ) {
+    this.dispatchEvent = eventsService.createDispatcherFor(
+      'Accon Webhook',
+      'OrderOutput',
+    );
+  }
+
   async onOrderCreated(
     payload: IntegrationPayload,
     config: AcconWebhookConfig,
-  ): Promise<void> {}
+  ): Promise<void> {
+    const { order } = payload;
+    this.dispatchEvent({
+      eventType: 'INTEGRATION_INITIATED',
+      orderId: order.id,
+    });
+    this.logger.debug(
+      `onOrderCreated: Transformando o pedido com id: ${order.id}`,
+    );
+    this.dispatchEvent({
+      eventType: 'INTEGRATION_PROCESSING',
+      orderId: order.id,
+    });
+    const body = this.transformOrder(order, payload.merchant);
+    this.logger.debug('onOrderCreated: Pedido transformado', body);
+
+    try {
+      const { status, data } = await firstValueFrom(
+        this.httpService.post(config.onCreatedURL, body),
+      );
+      this.dispatchEvent({
+        eventType: 'INTEGRATION_COMPLETED',
+        orderId: order.id,
+        metadata: { data, status },
+      });
+    } catch (error) {
+      if (isAxiosError(error)) {
+        this.logger.error(
+          'onOrderCreated: falha ao realizar requisição',
+          JSON.stringify(error.response?.data),
+        );
+        this.dispatchEvent({
+          eventType: 'INTEGRATION_FAILED',
+          orderId: order.id,
+          metadata: { error: error.response?.data },
+        });
+      } else {
+        this.dispatchEvent({
+          eventType: 'INTEGRATION_FAILED',
+          orderId: order.id,
+          metadata: { error },
+        });
+        this.logger.error(`onOrderCreated: ${error.message}`, error);
+      }
+    }
+  }
 
   async onOrderUpdated?(
     payload: IntegrationPayload,
@@ -47,7 +109,7 @@ export class AcconWebhook
     throw new Error('Method not implemented.');
   }
 
-  transformOrder(order: Order, merchant: Merchant): WebhookBodyDto {
+  transformOrder(order: Order, merchant?: Merchant): WebhookBodyDto {
     if (!merchant) {
       throw new InvalidPayloadException(
         'Os dados do estabelecimento são obrigatórios para integração',
