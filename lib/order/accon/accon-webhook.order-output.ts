@@ -75,7 +75,12 @@ export class AcconWebhookOrderOutput
     payload: IntegrationPayload,
     config: AcconWebhookConfig,
   ) {
-    const url = config[type];
+    const key: Record<HookType, keyof AcconWebhookConfig> = {
+      onOrderCreated: 'onCreatedURL',
+      onOrderUpdated: 'onUpdatedURL',
+      onOrderCanceled: 'onCanceledURL',
+    };
+    const url = config[key[type]];
     if (typeof url !== 'string') {
       this.logger.warn(`${type}: Configuração de URL ausente`);
       return;
