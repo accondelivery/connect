@@ -156,7 +156,10 @@ export class AcconWebhookOrderOutput
     return {
       _id: order.id,
       delivery: order.type === 'DELIVERY',
-      canceled: false,
+      canceled:
+        events?.some(
+          ({ eventType }) => eventType === OrderEventType.CANCELLED,
+        ) || false,
       scheduled: order.orderTiming === 'SCHEDULED',
       sequential: order.displayId,
       store: {
