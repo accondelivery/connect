@@ -25,7 +25,19 @@ export class ConnectService implements OnModuleInit {
     );
   }
 
-  async onOrderCreated(
+  /**
+   * @deprecated This method is retained only for backward compatibility with the old integration interface.
+   * Use onOrderEvent('onOrderCreated', ...) instead.
+   */
+  onOrderCreated(
+    integrations: Record<string, unknown>,
+    payload: IntegrationPayload,
+  ) {
+    return this.onOrderEvent('onOrderCreated', integrations, payload);
+  }
+
+  async onOrderEvent(
+    event: 'onOrderCreated' | 'onOrderUpdated' | 'onOrderCanceled',
     integrations: Record<string, unknown>,
     payload: IntegrationPayload,
   ) {
@@ -38,7 +50,7 @@ export class ConnectService implements OnModuleInit {
 
       if (!integrationEntry) {
         this.logger.error(
-          `onOrderCreated: integration with ID '${integrationId}' was not found.`,
+          `${event}: integration with ID '${integrationId}' was not found.`,
         );
         continue;
       }
@@ -49,20 +61,20 @@ export class ConnectService implements OnModuleInit {
         const instance = await this.moduleRef.create(
           integrationClass as Type<any>,
         );
-        if (typeof instance.onOrderCreated !== 'function') {
+        if (typeof instance[event] !== 'function') {
           this.logger.error(
-            `onOrderCreated: integration with ID '${integrationId}' does not implement 'onOrderCreated'.`,
+            `${event}: integration with ID '${integrationId}' does not implement '${event}'.`,
           );
           continue;
         }
 
-        await instance.onOrderCreated(payload, config);
+        await instance[event](payload, config);
         this.logger.log(
-          `onOrderCreated: integration with ID '${integrationId}' successfully processed order '${payload.order.id}'.`,
+          `${event}: integration with ID '${integrationId}' successfully processed order '${payload.order.id}'.`,
         );
       } catch (err) {
         this.logger.error(
-          `onOrderCreated: an error occurred while executing integration '${integrationId}' for order '${payload.order.id}'.`,
+          `${event}: an error occurred while executing integration '${integrationId}' for order '${payload.order.id}'.`,
           err.stack,
         );
       }
