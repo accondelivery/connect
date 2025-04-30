@@ -86,7 +86,7 @@ export type Order = {
       name: string;
       amount: Price;
       discountCode?: string;
-    };
+    }[];
   }[];
   total: {
     itemsPrice: Price;
