@@ -87,7 +87,7 @@ export type Order = {
       amount: Price;
       discountCode?: string;
     };
-  };
+  }[];
   total: {
     itemsPrice: Price;
     otherFees: Price;
