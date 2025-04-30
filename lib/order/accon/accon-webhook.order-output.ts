@@ -245,28 +245,30 @@ export class AcconWebhookOrderOutput
       ACCON_ALLOWED_STATUS.includes(event.eventType),
     );
 
-    return allowedEvents.map((event) => ({
-      date: new Date(event.createdAt).toISOString(),
-      obs: '',
-      name: ((eventType: OrderEventType) => {
-        switch (eventType) {
-          case OrderEventType.CREATED:
-            return 'Realizado';
-          case OrderEventType.CONFIRMED:
-            return 'confirmado';
-          case OrderEventType.DISPATCHED:
-          case OrderEventType.READY_FOR_PICKUP:
-            return 'pronto';
-          case OrderEventType.DELIVERED:
-          case OrderEventType.CONCLUDED:
-            return 'finalizado';
-          case OrderEventType.CANCELLED:
-            return 'cancelado';
-          default:
-            throw new Error(`Invalid status eventType: ${eventType}`);
-        }
-      })(event.eventType),
-    }));
+    return allowedEvents
+      .map((event) => ({
+        date: new Date(event.createdAt).toISOString(),
+        obs: '',
+        name: ((eventType: OrderEventType) => {
+          switch (eventType) {
+            case OrderEventType.CREATED:
+              return 'Realizado';
+            case OrderEventType.CONFIRMED:
+              return 'confirmado';
+            case OrderEventType.DISPATCHED:
+            case OrderEventType.READY_FOR_PICKUP:
+              return 'pronto';
+            case OrderEventType.DELIVERED:
+            case OrderEventType.CONCLUDED:
+              return 'finalizado';
+            case OrderEventType.CANCELLED:
+              return 'cancelado';
+            default:
+              throw new Error(`Invalid status eventType: ${eventType}`);
+          }
+        })(event.eventType),
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
   }
 
   transformPayment(order: Order): PaymentDto {
