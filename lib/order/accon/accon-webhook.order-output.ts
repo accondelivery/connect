@@ -13,11 +13,12 @@ import {
   ACCON_WEBHOOK_CONFIG_SCHEMA,
   AcconWebhookConfig,
 } from './accon-webhook.config';
-import { PaymentDto, WebhookBodyDto } from './dto/accon-webhook';
+import { PaymentDto, StatusDto, WebhookBodyDto } from './dto/accon-webhook';
 import { InvalidPayloadException } from '@lib/core/exceptions/invalid-payload.exception';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { isAxiosError } from 'axios';
+import { OrderEvent, OrderEventType } from '@lib/core/types/order-event.type';
 
 type HookType = 'onOrderCreated' | 'onOrderUpdated' | 'onOrderCanceled';
 
@@ -90,7 +91,7 @@ export class AcconWebhookOrderOutput
       eventType: 'INTEGRATION_PROCESSING',
       orderId: order.id,
     });
-    const body = this.transformOrder(order, payload.merchant);
+    const body = this.transformOrder(payload);
     this.logger.debug(`${type}: Pedido transformado`, body);
 
     try {
@@ -122,7 +123,8 @@ export class AcconWebhookOrderOutput
     }
   }
 
-  transformOrder(order: Order, merchant?: Merchant): WebhookBodyDto {
+  transformOrder(payload: IntegrationPayload): WebhookBodyDto {
+    const { order, merchant, events } = payload;
     if (!merchant) {
       throw new InvalidPayloadException(
         'Os dados do estabelecimento são obrigatórios para integração',
@@ -197,7 +199,7 @@ export class AcconWebhookOrderOutput
       subtotal: order.total.itemsPrice.value,
       discount: order.total.discount.value,
       total: order.total.orderAmount.value,
-      status: [],
+      status: this.transformEvents(events ?? []),
       user: {
         _id: order.customer.id,
         name: order.customer.name,
@@ -212,6 +214,54 @@ export class AcconWebhookOrderOutput
       network: '000000000000000000000000', // Magic network ID
       payment: this.transformPayment(order),
     };
+  }
+
+  transformEvents(events: OrderEvent[]): StatusDto[] {
+    if (!events.length) {
+      return [
+        {
+          name: 'Realizado',
+          obs: '',
+          date: new Date().toISOString(),
+        },
+      ];
+    }
+
+    const ACCON_ALLOWED_STATUS = [
+      OrderEventType.CREATED,
+      OrderEventType.CONFIRMED,
+      OrderEventType.READY_FOR_PICKUP,
+      OrderEventType.DISPATCHED,
+      OrderEventType.CONCLUDED,
+      OrderEventType.CANCELLED,
+    ];
+
+    const allowedEvents = events.filter((event) =>
+      ACCON_ALLOWED_STATUS.includes(event.eventType),
+    );
+
+    return allowedEvents.map((event) => ({
+      date: new Date(event.createdAt).toISOString(),
+      obs: '',
+      name: ((eventType: OrderEventType) => {
+        switch (eventType) {
+          case OrderEventType.CREATED:
+            return 'Realizado';
+          case OrderEventType.CONFIRMED:
+            return 'confirmado';
+          case OrderEventType.DISPATCHED:
+          case OrderEventType.READY_FOR_PICKUP:
+            return 'pronto';
+          case OrderEventType.DELIVERED:
+          case OrderEventType.CONCLUDED:
+            return 'finalizado';
+          case OrderEventType.CANCELLED:
+            return 'cancelado';
+          default:
+            throw new Error(`Invalid status eventType: ${eventType}`);
+        }
+      })(event.eventType),
+    }));
   }
 
   transformPayment(order: Order): PaymentDto {

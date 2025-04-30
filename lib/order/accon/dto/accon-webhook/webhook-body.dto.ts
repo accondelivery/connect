@@ -90,4 +90,4 @@ class WebhookBodyDto {
   document?: string;
 }
 
-export { WebhookBodyDto, PaymentDto };
+export { WebhookBodyDto, PaymentDto, StatusDto };
