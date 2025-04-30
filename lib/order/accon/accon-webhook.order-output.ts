@@ -28,9 +28,9 @@ type HookType = 'onOrderCreated' | 'onOrderUpdated' | 'onOrderCanceled';
   title: 'Accon 1.0 Webhook',
   category: 'POS',
   description: 'Integre pedidos via Webhook utilizando o formato da Accon 1.0',
-  logoUrl: 'https://accon.com.br/',
-  websiteUrl:
+  logoUrl:
     'https://accon.com.br/wp-content/uploads/2024/08/Accon-Logo-Roxa.webp',
+  websiteUrl: 'https://accon.com.br/',
   configSchema: ACCON_WEBHOOK_CONFIG_SCHEMA,
 })
 @Injectable()
@@ -230,18 +230,23 @@ export class AcconWebhookOrderOutput
   }
 
   transformVoucher(order: Order) {
-    return order.discounts.map((discount) => ({
-      rede: '000000000000000000000000',
-      stores: [order.merchant.id],
-      fidelity: discount.sponsorshipValues.discountCode === 'CASHBACK',
-      name: discount.sponsorshipValues.name,
-      text: discount.sponsorshipValues.discountCode,
-      products: [],
-      is_active: true,
-      value: discount.amount.value,
-      percent: false,
-      recurrent: false,
-    }));
+    return order.discounts
+      .filter((discount) => discount.sponsorshipValues.length > 0)
+      .map((discount) => {
+        const sponsorship = discount.sponsorshipValues[0];
+        return {
+          rede: '000000000000000000000000',
+          stores: [order.merchant.id],
+          fidelity: sponsorship?.discountCode === 'CASHBACK',
+          name: sponsorship?.name ?? '',
+          text: sponsorship?.discountCode ?? '',
+          products: [],
+          is_active: true,
+          value: discount.amount.value,
+          percent: false,
+          recurrent: false,
+        };
+      });
   }
 
   transformEvents(events: OrderEvent[]): StatusDto[] {
