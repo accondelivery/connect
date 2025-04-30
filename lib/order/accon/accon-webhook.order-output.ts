@@ -173,8 +173,8 @@ export class AcconWebhookOrderOutput
           state: merchant.address.state,
           zip: merchant.address.postalCode,
           latlng: {
-            lat: merchant.address.latitude,
-            lng: merchant.address.longitude,
+            lat: parseFloat(merchant.address.latitude.toString()),
+            lng: parseFloat(merchant.address.longitude.toString()),
           },
         },
         details: {
@@ -184,8 +184,8 @@ export class AcconWebhookOrderOutput
           socialName: merchant.corporateName,
           storePhone: merchant.commercialNumber,
         },
-        deliveryTime: '', // FIXME: extract from merchant
-        toGoTime: '',
+        deliveryTime: '40',
+        toGoTime: '30',
       },
       deliveryTax: deliveryFee?.price?.value || 0,
       address: delivery?.deliveryAddress
@@ -197,8 +197,12 @@ export class AcconWebhookOrderOutput
             state: delivery.deliveryAddress.state,
             zip: delivery.deliveryAddress.postalCode,
             latlng: {
-              lat: delivery.deliveryAddress.coordinates.latitude,
-              lng: delivery.deliveryAddress.coordinates.longitude,
+              lat: parseFloat(
+                delivery.deliveryAddress.coordinates.latitude.toString(),
+              ),
+              lng: parseFloat(
+                delivery.deliveryAddress.coordinates.longitude.toString(),
+              ),
             },
           }
         : undefined,
@@ -221,7 +225,23 @@ export class AcconWebhookOrderOutput
       source: order.salesChannel ?? 'ecommerce',
       network: '000000000000000000000000', // Magic network ID
       payment: this.transformPayment(order),
+      voucher: this.transformVoucher(order),
     };
+  }
+
+  transformVoucher(order: Order) {
+    return order.discounts.map((discount) => ({
+      rede: '000000000000000000000000',
+      stores: [order.merchant.id],
+      fidelity: discount.sponsorshipValues.discountCode === 'CASHBACK',
+      name: discount.sponsorshipValues.name,
+      text: discount.sponsorshipValues.discountCode,
+      products: [],
+      is_active: true,
+      value: discount.amount.value,
+      percent: false,
+      recurrent: false,
+    }));
   }
 
   transformEvents(events: OrderEvent[]): StatusDto[] {
@@ -306,7 +326,7 @@ export class AcconWebhookOrderOutput
     ];
 
     return {
-      cod: '',
+      cod: online ? '5c51aeba22c5d6596c5ac4b0' : '64554e3809a8eead82e2d4f2',
       online,
       pix: online && method === 'PIX',
       tid: transaction?.authorizationCode,
