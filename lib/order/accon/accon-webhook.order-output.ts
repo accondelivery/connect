@@ -13,7 +13,12 @@ import {
   ACCON_WEBHOOK_CONFIG_SCHEMA,
   AcconWebhookConfig,
 } from './accon-webhook.config';
-import { PaymentDto, StatusDto, WebhookBodyDto } from './dto/accon-webhook';
+import {
+  PaymentDto,
+  ProductDto,
+  StatusDto,
+  WebhookBodyDto,
+} from './dto/accon-webhook';
 import { InvalidPayloadException } from '@lib/core/exceptions/invalid-payload.exception';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -226,7 +231,32 @@ export class AcconWebhookOrderOutput
       network: '000000000000000000000000', // Magic network ID
       payment: this.transformPayment(order),
       voucher: this.transformVoucher(order),
+      products: this.transformProducts(order),
     };
+  }
+
+  transformProducts(order: Order): ProductDto[] {
+    return order.items.map((item, index) => ({
+      id: item.id,
+      name: item.name,
+      notes: item.specialInstructions ?? '',
+      quantity: item.quantity,
+      total: item.totalPrice.value,
+      modifiers: (item.options ?? []).map((modifier) => ({
+        id: modifier.id,
+        name: modifier.name,
+        price: {
+          actualPrice: modifier.unitPrice.value,
+          originalPrice: 0,
+          starterPrice: 0,
+        },
+        quantity: modifier.quantity,
+        group: index.toString(),
+        externalVendorCode: modifier.externalCode,
+      })),
+      group: index.toString(),
+      externalVendorCode: item.externalCode,
+    }));
   }
 
   transformVoucher(order: Order) {

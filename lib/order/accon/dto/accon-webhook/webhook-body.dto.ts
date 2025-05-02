@@ -1,4 +1,4 @@
-class AddressDto {
+export class AddressDto {
   address: string;
   number: string;
   complement?: string;
@@ -11,7 +11,7 @@ class AddressDto {
   };
 }
 
-class StoreDto {
+export class StoreDto {
   _id: string;
   name: string;
   address: AddressDto;
@@ -26,7 +26,7 @@ class StoreDto {
   };
 }
 
-class UserDto {
+export class UserDto {
   _id: string;
   name: string;
   document?: string;
@@ -35,7 +35,7 @@ class UserDto {
   totalOrders: number;
 }
 
-class PaymentDto {
+export class PaymentDto {
   type?: 'credit_card' | 'voucher' | 'ticket' | 'pix';
   online: boolean;
   name: string;
@@ -49,20 +49,43 @@ class PaymentDto {
   refunded?: string;
 }
 
-class RatingDto {
+export class RatingDto {
   stars: number;
   improvements: string[];
   notes?: string;
   reply?: string;
 }
 
-class StatusDto {
+export class StatusDto {
   name: string;
   date: string;
   obs?: string;
 }
 
-class WebhookBodyDto {
+export class ModifierDto {
+  id: string;
+  name: string;
+  price: {
+    actualPrice: number;
+    originalPrice: number;
+    starterPrice: number;
+  };
+  quantity: number;
+  group: string;
+  externalVendorCode?: string;
+}
+
+export class ProductDto {
+  id: string;
+  name: string;
+  quantity: number;
+  modifiers: ModifierDto[];
+  notes: string;
+  total: number;
+  externalVendorCode?: string;
+}
+
+export class WebhookBodyDto {
   _id: string;
   network: string;
   session_id?: string;
@@ -88,6 +111,5 @@ class WebhookBodyDto {
   rating?: RatingDto;
   notes?: string;
   document?: string;
+  products: ProductDto[];
 }
-
-export { WebhookBodyDto, PaymentDto, StatusDto };
