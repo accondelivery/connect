@@ -92,14 +92,15 @@ export class AcconWebhookOrderOutput
     }
 
     const { order } = payload;
+    const orderId = parseInt(order.externalId);
     this.dispatchEvent({
       eventType: 'INTEGRATION_INITIATED',
-      orderId: order.id,
+      orderId,
     });
     this.logger.debug(`${type}: Transformando o pedido com id: ${order.id}`);
     this.dispatchEvent({
       eventType: 'INTEGRATION_PROCESSING',
-      orderId: order.id,
+      orderId,
     });
     const body = this.transformOrder(payload);
     this.logger.debug(`${type}: Pedido transformado`, body);
@@ -110,7 +111,7 @@ export class AcconWebhookOrderOutput
       );
       this.dispatchEvent({
         eventType: 'INTEGRATION_COMPLETED',
-        orderId: order.id,
+        orderId,
         metadata: { data, status },
       });
     } catch (error) {
@@ -119,13 +120,13 @@ export class AcconWebhookOrderOutput
         this.logger.error(`${type}: falha ao enviar para ${url}`, errorData);
         this.dispatchEvent({
           eventType: 'INTEGRATION_FAILED',
-          orderId: order.id,
+          orderId,
           metadata: { error: error.response?.data },
         });
       } else {
         this.dispatchEvent({
           eventType: 'INTEGRATION_FAILED',
-          orderId: order.id,
+          orderId,
           metadata: { error },
         });
         this.logger.error(`${type}: ${error.message}`, error);

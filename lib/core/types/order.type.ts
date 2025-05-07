@@ -26,6 +26,7 @@ export type Order = {
   id: string;
   type: 'DELIVERY' | 'TAKEOUT' | 'INDOOR';
   displayId: string;
+  externalId: string;
   sourceAppId?: string;
   salesChannel?: string;
   virtualBrand?: string;
