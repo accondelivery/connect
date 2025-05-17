@@ -1,6 +1,7 @@
 import {
   EventsService,
   IntegrationEventDispatcher,
+  IntegrationPayload,
   InvalidOrderException,
   Order,
   OrderOutputIntegration,
@@ -62,23 +63,29 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
     return data?.token;
   }
 
-  async onOrderCreated(order: Order, config: SaiposConfig): Promise<void> {
+  async onOrderCreated(
+    payload: IntegrationPayload,
+    config: SaiposConfig,
+  ): Promise<void> {
     this.logger.verbose('onOrderCreated: iniciando integração');
+
+    const { order } = payload;
+
     if (!this.ALLOWED_ORDER_TYPES.includes(order.type)) {
       this.logger.verbose(
         `Ignorando tipo de pedido não permitido: ${order.type} [${this.ALLOWED_ORDER_TYPES.join(',')}]`,
       );
       return;
     }
-
+    const orderId = parseInt(order.externalId);
     this.dispatchEvent({
       eventType: 'INTEGRATION_INITIATED',
-      orderId: order.id,
+      orderId,
     });
 
     this.dispatchEvent({
       eventType: 'INTEGRATION_PROCESSING',
-      orderId: order.id,
+      orderId,
     });
 
     try {
@@ -98,11 +105,13 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
 
       this.dispatchEvent({
         eventType: 'INTEGRATION_COMPLETED',
-        orderId: order.id,
+        orderId,
         metadata: {
           data,
         },
       });
+
+      return;
     } catch (error) {
       if (isAxiosError(error)) {
         this.logger.error(
@@ -111,13 +120,13 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
         );
         this.dispatchEvent({
           eventType: 'INTEGRATION_FAILED',
-          orderId: order.id,
+          orderId,
           metadata: { error: error.response?.data },
         });
       } else {
         this.dispatchEvent({
           eventType: 'INTEGRATION_FAILED',
-          orderId: order.id,
+          orderId,
           metadata: { error },
         });
         this.logger.error(
@@ -128,12 +137,87 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
     }
   }
 
-  async onOrderUpdated?(order: Order, config: SaiposConfig): Promise<void> {
+  async onOrderUpdated?(
+    payload: IntegrationPayload,
+    config: SaiposConfig,
+  ): Promise<void> {
     throw new Error('Method not implemented.');
   }
 
-  async onOrderCanceled?(order: Order, config: SaiposConfig): Promise<void> {
-    throw new Error('Method not implemented.');
+  async onOrderCanceled?(
+    payload: IntegrationPayload,
+    config: SaiposConfig,
+  ): Promise<void> {
+    this.logger.verbose('onOrderCanceled: iniciando integração');
+
+    const { order } = payload;
+
+    if (!this.ALLOWED_ORDER_TYPES.includes(payload.order.type)) {
+      this.logger.verbose(
+        `Ignorando tipo de pedido não permitido: ${order.type} [${this.ALLOWED_ORDER_TYPES.join(',')}]`,
+      );
+      return;
+    }
+
+    const orderId = parseInt(order.externalId);
+    this.dispatchEvent({
+      eventType: 'INTEGRATION_INITIATED',
+      orderId,
+    });
+
+    this.dispatchEvent({
+      eventType: 'INTEGRATION_PROCESSING',
+      orderId,
+    });
+
+    try {
+      const token = await this.authenticate(config.idPartner);
+      if (!token) {
+        throw new Error('Não foi possível autenticar com a Saipos');
+      }
+
+      const { data } = await firstValueFrom(
+        this.httpService.post(
+          `${this.SAIPOS_BASE_URL}/cancel-order`,
+          { order_id: order.id, cod_store: config.idPartner },
+          {
+            headers: {
+              Authorization: token,
+            },
+          },
+        ),
+      );
+
+      this.dispatchEvent({
+        eventType: 'INTEGRATION_COMPLETED',
+        orderId,
+        metadata: {
+          data,
+        },
+      });
+    } catch (error) {
+      if (isAxiosError(error)) {
+        this.logger.error(
+          'onOrderCanceled: falha ao realizar requisição no Saipos',
+          JSON.stringify(error.response?.data),
+        );
+        this.dispatchEvent({
+          eventType: 'INTEGRATION_FAILED',
+          orderId,
+          metadata: { error: error.response?.data },
+        });
+      } else {
+        this.dispatchEvent({
+          eventType: 'INTEGRATION_FAILED',
+          orderId,
+          metadata: { error },
+        });
+        this.logger.error(
+          'onOrderCanceled: falha ao cancelar pedido no Saipos',
+          error,
+        );
+      }
+    }
   }
 
   transformPayment(order: Order): Array<PaymentTypeDto> {
