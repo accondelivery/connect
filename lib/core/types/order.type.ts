@@ -26,6 +26,7 @@ export type Order = {
   id: string;
   type: 'DELIVERY' | 'TAKEOUT' | 'INDOOR';
   displayId: string;
+  externalId: string;
   sourceAppId?: string;
   salesChannel?: string;
   virtualBrand?: string;
@@ -86,8 +87,8 @@ export type Order = {
       name: string;
       amount: Price;
       discountCode?: string;
-    };
-  };
+    }[];
+  }[];
   total: {
     itemsPrice: Price;
     otherFees: Price;

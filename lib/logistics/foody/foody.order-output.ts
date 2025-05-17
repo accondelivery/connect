@@ -6,6 +6,7 @@ import {
   Order,
   InvalidOrderException,
   IntegrationEventDispatcher,
+  IntegrationPayload,
 } from '@lib/core';
 import { FOODY_CONFIG_SCHEMA, FoodyConfig } from './foody.config';
 import { CreateFoodyOrderDto } from './dto/create-foody-order.dto';
@@ -42,7 +43,12 @@ export class FoodyOrderOutput implements OrderOutputIntegration<FoodyConfig> {
     );
   }
 
-  async onOrderCreated(order: Order, config: FoodyConfig): Promise<void> {
+  async onOrderCreated(
+    payload: IntegrationPayload,
+    config: FoodyConfig,
+  ): Promise<void> {
+    const { order } = payload;
+    const orderId = parseInt(order.externalId);
     this.logger.verbose('onOrderCreated: iniciando integração');
     if (order.type != 'DELIVERY') {
       this.logger.verbose('Ignorando pedido com tipo diferente de DELIVERY');
@@ -52,14 +58,14 @@ export class FoodyOrderOutput implements OrderOutputIntegration<FoodyConfig> {
     try {
       this.dispatchEvent({
         eventType: 'INTEGRATION_INITIATED',
-        orderId: order.id,
+        orderId,
       });
       this.logger.debug(
         `onOrderCreated: Transformando o pedido com id: ${order.id}`,
       );
       this.dispatchEvent({
         eventType: 'INTEGRATION_PROCESSING',
-        orderId: order.id,
+        orderId,
       });
       const body = this.transformOrder(order);
       this.logger.debug('onOrderCreated: Pedido transformado', body);
@@ -80,7 +86,7 @@ export class FoodyOrderOutput implements OrderOutputIntegration<FoodyConfig> {
       this.logger.debug('onOrderCreated: Resposta do Foody', data);
       this.dispatchEvent({
         eventType: 'INTEGRATION_COMPLETED',
-        orderId: order.id,
+        orderId,
         metadata: { data },
       });
     } catch (error) {
@@ -91,13 +97,13 @@ export class FoodyOrderOutput implements OrderOutputIntegration<FoodyConfig> {
         );
         this.dispatchEvent({
           eventType: 'INTEGRATION_FAILED',
-          orderId: order.id,
+          orderId,
           metadata: { error: error.response?.data },
         });
       } else {
         this.dispatchEvent({
           eventType: 'INTEGRATION_FAILED',
-          orderId: order.id,
+          orderId,
           metadata: { error },
         });
         this.logger.error(

@@ -12,7 +12,7 @@ export type IntegrationEventType =
 export interface IntegrationEvent {
   integrationName: string;
   integrationType: IntegrationType;
-  orderId: string,
+  orderId: number,
   eventType: IntegrationEventType;
   externalId?: string;
   description: string;

@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit, Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { IntegrationRegistryService } from './integration-registry.service';
-import { IntegrationMeta, Order } from '.';
+import { IntegrationMeta, IntegrationPayload } from '.';
 import { loadIntegrationFiles } from './integration-loader';
 import * as path from 'node:path';
 
@@ -25,9 +25,21 @@ export class ConnectService implements OnModuleInit {
     );
   }
 
-  async onOrderCreated(
+  /**
+   * @deprecated This method is retained only for backward compatibility with the old integration interface.
+   * Use onOrderEvent('onOrderCreated', ...) instead.
+   */
+  onOrderCreated(
     integrations: Record<string, unknown>,
-    payload: { order: Order },
+    payload: IntegrationPayload,
+  ) {
+    return this.onOrderEvent('onOrderCreated', integrations, payload);
+  }
+
+  async onOrderEvent(
+    event: 'onOrderCreated' | 'onOrderUpdated' | 'onOrderCanceled',
+    integrations: Record<string, unknown>,
+    payload: IntegrationPayload,
   ) {
     const allIntegrations = this.findAll();
 
@@ -37,7 +49,9 @@ export class ConnectService implements OnModuleInit {
       );
 
       if (!integrationEntry) {
-        this.logger.warn(`Integration ${integrationId} not found`);
+        this.logger.error(
+          `${event}: integration with ID '${integrationId}' was not found.`,
+        );
         continue;
       }
 
@@ -47,23 +61,49 @@ export class ConnectService implements OnModuleInit {
         const instance = await this.moduleRef.create(
           integrationClass as Type<any>,
         );
-        if (typeof instance.onOrderCreated !== 'function') {
-          this.logger.warn(
-            `Integration ${integrationId} does not implement onOrderCreated`,
+        if (typeof instance[event] !== 'function') {
+          this.logger.error(
+            `${event}: integration with ID '${integrationId}' does not implement '${event}'.`,
           );
           continue;
         }
 
-        await instance.onOrderCreated(payload.order, config);
+        await instance[event](payload, config);
         this.logger.log(
-          `Integration ${integrationId} processed order ${payload.order.id}`,
+          `${event}: integration with ID '${integrationId}' successfully processed order '${payload.order.id}'.`,
         );
       } catch (err) {
         this.logger.error(
-          `Failed to run integration ${integrationId} for order ${payload.order.id}`,
+          `${event}: an error occurred while executing integration '${integrationId}' for order '${payload.order.id}'.`,
           err.stack,
         );
       }
+    }
+  }
+
+  async onWebhookData(integrationId: string, body: any, queryParams?: any) {
+    const integration = this.findOne(integrationId);
+    if (!integration) {
+      this.logger.error(
+        `onWebhookData: integration with ID '${integrationId}' was not found.`,
+      );
+      return;
+    }
+
+    const { integrationClass } = integration;
+
+    try {
+      const instance = await this.moduleRef.create(
+        integrationClass as Type<any>,
+      );
+      if (typeof instance.onWebhookData !== 'function') {
+        this.logger.error(
+          `onWebhookData: integration with ID '${integrationId}' does not implement 'onWebhookData'.`,
+        );
+      }
+      await instance.onWebhookData(body, queryParams);
+    } catch (err) {
+      this.logger.error(`onWebhookData: ${err.message}`, err.stack);
     }
   }
 }

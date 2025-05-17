@@ -1,5 +1,7 @@
-import { Order } from '../types/order.type';
+import { IntegrationPayload } from '../types';
 
 export interface OrderOutputIntegration<C> {
-  onOrderCreated(order: Order, config: C): Promise<void>;
+  onOrderCreated(payload: IntegrationPayload, config: C): Promise<void>;
+  onOrderUpdated?(payload: IntegrationPayload, config: C): Promise<void>;
+  onOrderCanceled?(payload: IntegrationPayload, config: C): Promise<void>;
 }

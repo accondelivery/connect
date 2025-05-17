@@ -42,7 +42,7 @@ describe('FoodyOutputOrder', () => {
 
   it('should ignore non-DELIVERY orders', async () => {
     const order = { type: 'TAKEOUT' } as Order;
-    await service.onOrderCreated(order, { authorizationToken: 'abc' });
+    await service.onOrderCreated({ order }, { authorizationToken: 'abc' });
     expect(dispatchMock).not.toHaveBeenCalled();
   });
 
@@ -72,7 +72,7 @@ describe('FoodyOutputOrder', () => {
     const response = { data: { success: true } } as AxiosResponse;
     jest.spyOn(httpService, 'post').mockReturnValue(of(response));
 
-    await service.onOrderCreated(order, { authorizationToken: 'token' });
+    await service.onOrderCreated({ order }, { authorizationToken: 'token' });
 
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_INITIATED',
@@ -96,7 +96,7 @@ describe('FoodyOutputOrder', () => {
       delivery: null,
     } as unknown as Order;
 
-    await service.onOrderCreated(order, { authorizationToken: 'token' });
+    await service.onOrderCreated({ order }, { authorizationToken: 'token' });
 
     expect(dispatchMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -142,7 +142,7 @@ describe('FoodyOutputOrder', () => {
       .spyOn(httpService, 'post')
       .mockReturnValueOnce(throwError(() => axiosError));
 
-    await service.onOrderCreated(order, { authorizationToken: 'token' });
+    await service.onOrderCreated({ order }, { authorizationToken: 'token' });
 
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_INITIATED',
@@ -189,7 +189,7 @@ describe('FoodyOutputOrder', () => {
     const response = { data: { success: true } } as AxiosResponse;
     jest.spyOn(httpService, 'post').mockReturnValue(of(response));
 
-    await service.onOrderCreated(order, { authorizationToken: 'token' });
+    await service.onOrderCreated({ order }, { authorizationToken: 'token' });
 
     expect(dispatchMock).toHaveBeenCalledWith({
       eventType: 'INTEGRATION_INITIATED',
