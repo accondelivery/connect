@@ -296,6 +296,7 @@ export class AcconWebhookOrderOutput
       OrderEventType.CONFIRMED,
       OrderEventType.READY_FOR_PICKUP,
       OrderEventType.DISPATCHED,
+      OrderEventType.DELIVERED,
       OrderEventType.CONCLUDED,
       OrderEventType.CANCELLED,
     ];
