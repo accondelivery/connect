@@ -10,7 +10,7 @@ import {
 import { Injectable, Logger } from '@nestjs/common';
 import { SAIPOS_CONFIG_SCHEMA, SaiposConfig } from './saipos.config';
 import { HttpService } from '@nestjs/axios';
-import { first, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import {
   CreateOrderDto,
   ItemDto,
@@ -18,6 +18,7 @@ import {
   PaymentTypeDto,
 } from './dto/create-order.dto';
 import { isAxiosError } from 'axios';
+import * as moment from 'moment';
 
 @RegistryIntegration({
   id: 'saipos',
@@ -293,6 +294,14 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
     });
   }
 
+  getDeliveryDateTime(order: Order) {
+    if (order.schedule?.scheduledDateTimeStart) {
+      return order.schedule.scheduledDateTimeStart;
+    }
+    // TODO: get information from merchant
+    return moment(order.createdAt).add(30, 'minutes').toISOString();
+  }
+
   transformOrder(order: Order): CreateOrderDto {
     if (!order.customer) {
       throw new InvalidOrderException('Pedido sem cliente', 'customer');
@@ -323,7 +332,7 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
         delivery_by: 'RESTAURANT',
         delivery_fee: deliveryFee?.price.value ?? 0,
         scheduled: order.orderTiming === 'SCHEDULED',
-        delivery_date_time: order.schedule?.scheduledDateTimeStart,
+        delivery_date_time: this.getDeliveryDateTime(order),
       },
       items: this.transformItems(order),
       payment_types: this.transformPayment(order),
