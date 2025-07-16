@@ -276,7 +276,7 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
     return order.items.map((item) => {
       const options = item.options?.map((option) => {
         return {
-          integration_code: option.externalCode,
+          integration_code: option.externalCode?.trim(),
           desc_item_choice: option.name,
           aditional_price: option.unitPrice.value,
           quantity: option.quantity,
@@ -285,7 +285,7 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
 
       return {
         desc_item: item.name,
-        integration_code: item.externalCode,
+        integration_code: item.externalCode?.trim(),
         notes: item.specialInstructions,
         quantity: item.quantity,
         unit_price: item.unitPrice.value,
