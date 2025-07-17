@@ -34,7 +34,7 @@ import * as moment from 'moment';
 @Injectable()
 export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
   private readonly logger: Logger = new Logger(SaiposOrderOutput.name);
-  private readonly SAIPOS_BASE_URL = 'https://homolog-order-api.saipos.com';
+  private readonly SAIPOS_BASE_URL;
   private readonly SAIPOS_SECRET;
   private readonly ALLOWED_ORDER_TYPES = ['DELIVERY', 'TAKEOUT'];
   private readonly dispatchEvent: IntegrationEventDispatcher;
@@ -43,10 +43,12 @@ export class SaiposOrderOutput implements OrderOutputIntegration<SaiposConfig> {
     readonly eventsService: EventsService,
     private readonly httpService: HttpService,
   ) {
-    this.SAIPOS_SECRET =
-      process.env.SAIPOS_SECRET || 'affbd9122769388cb943ca74fd589617';
+    this.SAIPOS_SECRET = process.env.SAIPOS_SECRET;
     if (!this.SAIPOS_SECRET)
       this.logger.error('SAIPOS_SECRET não fornecido via ambiente');
+
+    this.SAIPOS_BASE_URL =
+      process.env.SAIPOS_BASE_URL || 'https://order-api.saipos.com';
 
     this.dispatchEvent = eventsService.createDispatcherFor(
       'Saipos',
